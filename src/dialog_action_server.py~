@@ -48,10 +48,29 @@ def dialog_action_server():
 	
 	while not rospy.is_shutdown():
 		if flag == True:
+
+			#launching remote mutex
+			uuid_m = roslaunch.rlutil.get_or_generate_uuid(None, False)
+			roslaunch.configure_logging(uuid_m)
+			launch_m = roslaunch.parent.ROSLaunchParent(uuid_m, ["/home/nataliereu/catkin_ws/src/Distributed_Collaborative_Task_Tree/remote_mutex/launch/table_setting_mutex.launch"])
+			
+			rospy.set_param('/root_topic', TOPIC)
+
+			launch_m.start()
+			rospy.sleep(2.0)
+			rospy.loginfo("Launched remote mutex")
+			#flag = False
+
+			#launching multi_robot_demo
 			uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
 			roslaunch.configure_logging(uuid)
-			#launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/santosh/onr_ws/src/Distributed_Collaborative_Task_Tree/table_setting_demo/launch/test.launch"])
-			launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/nataliereu/catkin_ws/src/Distributed_Collaborative_Task_Tree/table_setting_demo/launch/multi_robot_task_demo_visionManip.launch"])
+
+			#PR2 running version
+			#launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/nataliereu/catkin_ws/src/Distributed_Collaborative_Task_Tree/table_setting_demo/launch/multi_robot_task_demo_visionManip.launch"])
+
+			#No PR2 version
+			launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/nataliereu/catkin_ws/src/Distributed_Collaborative_Task_Tree/table_task_sim/launch/dummy_multi_demo.launch"])
+
 			act = robotics_task_tree_msgs.msg.ControlMessage()
 			act.sender.type = 4
 			act.sender.robot = 0
@@ -66,11 +85,13 @@ def dialog_action_server():
 			launch.start()
 			rospy.sleep(2.0)
 			pub.publish(act)
-			rospy.loginfo("Done activating")
+			rospy.loginfo("Published activation")
 			flag = False
 
+
 		if close == True:
-			launch.shutdown()	
+			launch.shutdown()
+			launch_m.shutdown()	
 			#close = False
 			rospy.loginfo("I am done!! and closing!!!!")
 	

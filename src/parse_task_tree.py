@@ -67,7 +67,7 @@ def CreateThenObject(robot_id, node_id, parent):
   return TaskObject('THEN', 0, robot_id, node_id, parent)
 
 def CreatePlaceObject(robot_id, node_id, parent):
-  return PlaceObject('PLACE', 3, robot_id, node_id, parent)
+  return PlaceObject('PLACE', 6, robot_id, node_id, parent)
 
 def CreateAndObject(robot_id, node_id, parent):
   return TaskObject('AND', 2, robot_id, node_id, parent)
