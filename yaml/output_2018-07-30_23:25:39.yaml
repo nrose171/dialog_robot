@@ -1,0 +1,22 @@
+NodeList: ['ROOT_4_0_000', 'PLACE_6_0_001' ]
+Nodes: 
+  ROOT_4_0_000:
+    mask:
+      type: 4
+      robot: 0
+      node: 0
+    parent: 'NONE'
+    children: ['PLACE_6_0_001']
+    peers: ['NONE']
+  PLACE_6_0_001:
+    mask:
+      type: 6
+      robot: 0
+      node: 1
+    parent: ROOT_4_0_000
+    peers: ['NONE']
+    object: green_leg
+    loc_obj: robot
+    off_x: 0.718193
+    off_y: -0.298247
+    off_z: 0.990027
