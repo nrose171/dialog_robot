@@ -54,7 +54,7 @@ def dialog_action_server():
 			roslaunch.configure_logging(uuid_m)
 			launch_m = roslaunch.parent.ROSLaunchParent(uuid_m, ["/home/nataliereu/catkin_ws/src/Distributed_Collaborative_Task_Tree/remote_mutex/launch/table_setting_mutex.launch"])
 			
-			rospy.set_param('/root_topic', TOPIC)
+			rospy.set_param('/root_topic', TOPIC + "_state") 
 
 			launch_m.start()
 			rospy.sleep(2.0)

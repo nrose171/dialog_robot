@@ -8,14 +8,15 @@ Output => A preorder tree traversal and a YAML file
 
 Symbol = str
 
+#Preposition offsets
 def get_offsets(word):
   offset_dict = {
     '' : [0, 0, 0],
-    'on' : [0, 0, 0],
-    'onto' : [0, 0, 0],
-    'in+front+of' : [0, 1, 0],
-    'on_l' : [2, 0, 0],
-    'on_r' : [0, 0, 3]  
+    'on' : [0.330056,0.354265,0.028489],
+    'onto' : [0.292087,0.016732,-0.015673],
+    'in+front+of' : [0.718193,-0.298247,0.990027],
+    'on_l' : [0.250604,-0.04831,0.004393],
+    'on_r' : [0.26528,0.272534,0.011394]  
   }
   return offset_dict[word]
 
@@ -67,7 +68,7 @@ def CreateThenObject(robot_id, node_id, parent):
   return TaskObject('THEN', 0, robot_id, node_id, parent)
 
 def CreatePlaceObject(robot_id, node_id, parent):
-  return PlaceObject('PLACE', 3, robot_id, node_id, parent)
+  return PlaceObject('PLACE', 6, robot_id, node_id, parent)
 
 def CreateAndObject(robot_id, node_id, parent):
   return TaskObject('AND', 2, robot_id, node_id, parent)
@@ -118,9 +119,9 @@ class PlaceObject(TaskObject):
     super(PlaceObject, self).__init__(name, node_type, robot_id, node_id, parent)
     self.place_object = ''
     self.dest_object = ''
-    self.off_x = 0
-    self.off_y = 0
-    self.off_z = 0
+    self.off_x = 0.0
+    self.off_y = 0.0
+    self.off_z = 0.0
 
   def __call__(self, item, dest = "", prep = ""):
     self.place_object = item
@@ -138,9 +139,9 @@ class PlaceObject(TaskObject):
       '%(parentString)s\n'                                     
       '  object: %(object)s\n'                                 
       '  loc_obj: %(location)s\n'                             
-      '  off_x: %(offset_x)3.1f\n'                             
-      '  off_y: %(offset_y)3.1f\n'                            
-      '  off_z: %(offset_z)3.1f'                               
+      '  off_x: %(offset_x)3.6f\n'                             
+      '  off_y: %(offset_y)3.6f\n'                            
+      '  off_z: %(offset_z)3.6f'                               
       % {                                  
         'parentString': parent_str,        
         'object': self.place_object,      

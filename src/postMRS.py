@@ -62,7 +62,8 @@ def simplify (rels):
             rels_dic[ARG_0] = [category, word, location, ARGS]
         elif re.match(r'.*_a_.*', r[1]):                            
             category = "adjective"                                  
-            word = re.sub(r'^_', "", re.sub(r'_a_.*', "", r[1]))    
+            word = re.sub(r'^_', "", re.sub(r'_a_.*', "", r[1]))
+			    
             rels_dic[ARG_0] = [category, word, location, ARGS]      
         elif re.match(r'.*_p.*', r[1]):                                         
             category = "preposition"                                
@@ -190,6 +191,18 @@ def prepositionHandling(rels):
 def getSubjects(rels, prep, subjects):
     for arg in rels[prep][3]:
         if rels[arg][0] == 'noun':
+			
+			#orange hacking 
+            if rels[arg][1] == 'top':
+				rels[arg][1] = 'orange_' + rels[arg][1] 
+		
             subjects.append(arg)
+
         elif rels[arg][0] == 'conj':
             getSubjects(rels, arg, subjects)
+
+
+
+
+
+
