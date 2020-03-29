@@ -1,7 +1,0 @@
-  <node name="recognizer" pkg="pocketsphinx" type="recognizer.py">
-    <param name="lm" value="/home/nathaniel/catkin_ws/src/dialog_robot/pocketsphinx/recipe.lm"/>
-	<param name="_kws" value="_kws:=/home/nathaniel/catkin_ws/src/pocketsphinx/vocab/voice_cmd.kwlist" />
-    <param name="dict" value="/home/nathaniel/catkin_ws/src/dialog_robot/pocketsphinx/recipe.dic"/>
-	<param name="_stream" value="_stream:=true" />
-  </node>
-
