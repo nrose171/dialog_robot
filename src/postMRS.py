@@ -1,4 +1,7 @@
 import re
+
+#used for creating rels_dic out of MRS notation
+#then uses rels_dic to create parenthesized commands
   
 class CommandTree:
     class Node:
@@ -10,6 +13,7 @@ class CommandTree:
             for c in children:
                 children.append(c)
   
+
 def parseMRSintoCommand(MRS):
     relsLines = list()
     takeRels = False
@@ -17,7 +21,6 @@ def parseMRSintoCommand(MRS):
     sentence = ""
     MRS = MRS.split('\n')
     for line in MRS:    
-        line = line.strip()
         if re.match(r'^SENT*', line):
             line = re.sub(r'^SENT: ', "", line)
             sentence = line.strip()
@@ -31,17 +34,100 @@ def parseMRSintoCommand(MRS):
             takeRels = False
         if takeRels ==True:
             relsLines.append(line)
-    rels = simplify(relsLines)
-    adjectiveHandling(rels)
-    prepositionHandling(rels)
-    command = buildTree (rels, index)
 
+    #search for 'while', if found, split sentence into two and run both seperately then add while at the end
+    #Search for number of verbs. If 2 or more found, split sentence and run Sentences seperately then recombine with conjuntion after.
+    commandL = list()
+    verbL = list()
+
+    verbL = returnVerbs( relsLines )
+    j = len(verbL)  #j = number of verbs
+
+    #Assumes only 1 or 2 verbs for now
+    if j >= 2:
+        relsLinesList = splitSentenceIntoTwo(relsLines)
+        conj = returnConj( relsLinesList )
+    else:
+        relsLinesList = [relsLines]
+
+    for i in range(j):
+        rels = simplify(relsLinesList[i])
+        adjectiveHandling(rels)
+        prepositionHandling(rels)
+        #command = buildTree(rels, verbL[i])
+        commandL.append( buildTree(rels, verbL[i]) )
+    
+    if j >= 2:
+        finalCommand = addConjToEnd( commandL, conj )
+    else:
+        finalCommand = commandL[0]
+    
     #############TEST###########
-    print(command)
+    print(finalCommand)
     ############################
 
-    return command
-  
+    return finalCommand
+
+#checks for verbs in a sentence and returns them in a list
+def returnVerbs( sentence ):
+
+    verbL = list()
+    for word in sentence:
+        word = word.split()
+        if re.match(r'.*_v_.*', word[1]):
+            verbL.append( word[5] )
+
+    return verbL
+
+#splits a sentence with 2 verbs and 1 conj into two simple sentences. ASSUMES just 2 verbs and 1 conj.
+def splitSentenceIntoTwo( sentence ):
+
+    sent1 = list() 
+    sent2 = list()
+
+    #conjHit = False
+    conj = None
+    for wordL in sentence:
+        word = wordL.split()
+        if re.match(r'^_and_.*', word[1]) or re.match(r'^_or_.*', word[1]) or re.match(r'^_then_.*', word[1]) or re.match(r'^_while_.*', word[1]):
+            conjHit = True
+            conj = word[1]
+        elif conj is None:
+            sent1.append(wordL)
+        else:
+            sent2.append(wordL)
+
+    sentL = list()    
+    sentL.append(sent1)
+    sentL.append(sent2)
+    sentL.append(conj)
+    return sentL
+
+#Takes in a list of MRS sentences and assumes the first element is a conjunction. Returns that conjunction.
+def returnConj( sentence_list ):
+
+    conj = sentence_list[2]
+    if re.match(r'^_and_.*', conj):
+        return 'AND'
+    elif re.match(r'^_or_.*', conj):
+        return 'OR'
+    elif re.match(r'^_then_.*', conj):
+        return 'THEN'
+    elif re.match(r'^_while_.*', conj):
+        return 'WHILE'
+    else:
+        rospy.logerr( "ERROR: 2 VERBS PASSED, BUT NO CONJUNCTION PASSED" )
+
+#need to add passed conjunction to end of parenthesized command
+def addConjToEnd( pCommandL, conj ):
+
+    commandString = "( " + conj + " "
+    for i in range(len(pCommandL)):
+        commandString += pCommandL[i] + " "
+    commandString += ")"
+    return commandString
+
+#creates rels dictionary
 def simplify (rels):
     rels_dic = dict()
     rels_dic_impl = dict()
@@ -62,15 +148,13 @@ def simplify (rels):
             rels_dic[ARG_0] = [category, word, location, ARGS]
         elif re.match(r'.*_a_.*', r[1]):                            
             category = "adjective"                                  
-            word = re.sub(r'^_', "", re.sub(r'_a_.*', "", r[1]))
-			    
+            word = re.sub(r'^_', "", re.sub(r'_a_.*', "", r[1]))    
             rels_dic[ARG_0] = [category, word, location, ARGS]      
         elif re.match(r'.*_p.*', r[1]):                                         
             category = "preposition"                                
-            word = re.sub(r'^_', "", re.sub(r'_p.*', "", r[1]))     
+            word = re.sub(r'^_', "", re.sub(r'_p.*', "", r[1]))
             rels_dic[ARG_0] = [category, word, location, ARGS]
         elif re.match(r'^_and_.*', r[1]):
-            conjunction = word
             category = "conj"
             word = "and"
             conjunction = word            
@@ -79,12 +163,12 @@ def simplify (rels):
             category = "conj"
             word = "or"
             conjunction = word
-            rels_dic[ARG_0] = [category, word, location, ARGS]  
+            rels_dic[ARG_0] = [category, word, location, ARGS]
         elif re.match(r'^_then_.*', r[1]):
             category = "conj"
             word = "then"
             conjunction = word
-            rels_dic[ARG_0] = [category, word, location, ARGS] 
+            rels_dic[ARG_0] = [category, word, location, ARGS]
         elif re.match(r'^implicit_conj.*', r[1]):
             implicit_conj = True
             category = "conj"
@@ -134,13 +218,14 @@ def getARGS (argList):
   
   
 def buildTree (rels, index):
-    verb = rels[index][1]
-#    commandString = "( ROOT " + getTree(verb, rels, rels[index][3][1]) + " )"
+    verb = rels[index][1]	#N: assumes there is 1 verb
+    commandString = "( ROOT " + getTree(verb, rels, rels[index][3][1]) + " )"
 
     commandString = getTree(verb, rels, rels[index][3][1])
  
     return commandString
   
+#creates parenthesized commands based off the word with respect to a verb
 def getTree (verb, rels, index):
     commandString = ""
     word_type = rels[index][0]
@@ -153,19 +238,22 @@ def getTree (verb, rels, index):
         elif rels[index][1] == 'and':
             commandString = "( AND "   
         elif rels[index][1] == 'then':
-            commandString = "( THEN "  
+            commandString = "( THEN "
         for arg in rels[index][3]:
             commandString += getTree(verb, rels, arg) + " "
         commandString += ")"
-    else: # word_type "THEN"
+    else:
         pass
     return commandString    
   
 def getPredicate (verb):
-    if verb == "place" or verb == "put":
+    if verb == "place" or verb == "placing" or verb == "put" or verb == "putting":
         return "PLACE"
+    elif verb == "hold" or verb == "holding":
+        return "HOLD"
     else:
         return "NONE"
+
 def adjectiveHandling(rels):
     for adj in rels:
         if rels[adj][0] == "adjective": 
@@ -188,6 +276,7 @@ def prepositionHandling(rels):
 		    preposition = "on_r"
                 word = rels[x][1]
                 rels[x][1] = word + " " + dest_name + " " + preposition
+
 def getSubjects(rels, prep, subjects):
     for arg in rels[prep][3]:
         if rels[arg][0] == 'noun':

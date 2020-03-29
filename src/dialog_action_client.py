@@ -2,7 +2,7 @@
 
 import sys
 import rospy
-from dummy_speech.srv import *
+from dummy_speech.srv import * #missing dummy_speech.srv
 
 def dialog_action_client(yaml, node):
 	rospy.wait_for_service('dialog_action')

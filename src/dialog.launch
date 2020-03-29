@@ -1,13 +1,19 @@
 <launch>
 
   <node name="recognizer" pkg="pocketsphinx" type="recognizer.py">
-    <param name="lm" value="/home/nataliereu/catkin_ws/src/dialog_robot/pocketsphinx/recipe.lm"/>
-    <param name="dict" value="/home/nataliereu/catkin_ws/src/dialog_robot/pocketsphinx/recipe.dic"/>
+    <param name="lm" value="/home/nathaniel/catkin_ws_wr/src/dialog_robot/pocketsphinx/mdef"/>
+    <param name="dict" value="/home/nathaniel/catkin_ws_wr/src/dialog_robot/pocketsphinx/testRecipe.dic"/>
+    <param name="kws" value="/home/nathaniel/catkin_ws_wr/src/dialog_robot/pocketsphinx/verbRecipe.kwlist"/>
+    <param name="stream" value="true" />
+    <param name="kws_delay" value="100" />
+	<!-- <param name="normalize-input" value="true" /> 
+	<param name="speech-trailing-silence" value="600" />
+    <param name="vad_postspeech" value="20" /> -->
   </node>
 
   <node name="dialog" pkg="dialog_robot" type="dialog.py" output="screen" required="true">
-  	<param name="voice" value="voice_kal_diphone"/>
-  	<param name="wavepath" value="/home/nataliereu/catkin_ws/src/dialog_robot/sounds/" />
+    <param name="voice" value="voice_kal_diphone"/>
+    <param name="wavepath" value="/home/nathaniel/catkin_ws_wr/src/dialog_robot/sounds/" />
   </node>
 
 </launch>

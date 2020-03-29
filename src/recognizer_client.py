@@ -4,6 +4,8 @@ import sys
 import rospy
 from std_srvs.srv import *
 
+#used to communicate with recognizer node so dialog node knows when to listen and when not to listen
+
 def pause():
 	rospy.wait_for_service('/recognizer/pause')
 	try:

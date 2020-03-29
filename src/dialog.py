@@ -6,7 +6,7 @@ from sound_play.libsoundplay import SoundClient
 import preMRS
 import postMRS
 import reorder
-import dialog_action_client as dc
+#import dialog_action_client as dc	#missing dummy_speech.srv
 import recognizer_client 
 import nltk
 import sys
@@ -15,7 +15,7 @@ import re
 import time
 import datetime
 
-home_dir       = "/home/nataliereu/catkin_ws/src/dialog_robot/"
+home_dir       = "/home/nathaniel/catkin_ws_wr/src/dialog_robot/"
 yaml_dir 	   = home_dir + "yaml/"
 recipe_dir     = home_dir + "recipe/"
 analyzer_dir   = home_dir + "analyzer/"
@@ -42,16 +42,21 @@ class Dialog:
 		self.recipe = ""
 		self.recipe_name = ""
 
-		corpus_file  = open(recognizer_dir + "recipe.corpus", 'r')
+		corpus_file  = open(recognizer_dir + "verbRecipe.corpus", 'r')
 		self.good_strings = list()
-		self.recipe_commands = list()
+		self.recipe_commands = list()	#holds list of possible commands to make a recipe (ex. place the plate)
+
+		#reads every line in corpus file and looks for prepositions
 		for line in corpus_file:
 			line = line.strip()
 			self.good_strings.append(line)
 			if re.match(r'^place.*', line):
 				self.recipe_commands.append(line)
+			elif re.match(r'^hold.*', line):
+				self.recipe_commands.append(line)
 		corpus_file.close()
 
+		#creates list of pre-made recipes
 		self.recipes = list()
 		recipes_names_file = open(recipe_dir + "recipe.names", 'r')
 		for line in recipes_names_file:
@@ -63,6 +68,7 @@ class Dialog:
 		rospy.sleep(1)
 		self.soundhandle.stopAll()
 
+        #Connects to the recognizer (pocketsphinx) and takes the output of it
 		rospy.Subscriber('/recognizer/output', String, self.dialogLoop)
 		rospy.sleep(1)
 
@@ -70,12 +76,16 @@ class Dialog:
 		self.soundhandle.say(readyString, self.voice)
 		rospy.loginfo(readyString)
 
+
+
 		#recognizer_client.continuing()		#################################
 		
 		
 		rospy.sleep(1)		
 
 	def dialogLoop(self,msg):
+
+		#print( msg )
 
 		rospy.loginfo(msg.data)
 
@@ -157,27 +167,28 @@ class Dialog:
 			self.soundhandle.say(outString, self.voice)
 			return
 
-
+#place or hold command
 	def dialog_10(self, inString):
 
 		inString_new, leftOrRightBread = self.detectLeftRightBread(inString) # hack 1of2 for left/right bread
-		inString_updated = self.detectYou(inString_new)
-		inString_final = self.detectBase(inString_updated)
-		selectedMRS = self.semanticAnalysis (inString_final)	
+		inString_updated = self.detectYou(inString_new)		#detects that you is referring to the robot
+		inString_final = self.detectBase(inString_updated)	#detects that the base is referring to the green leg
+		selectedMRS = self.semanticAnalysis (inString_final)	#analyzes input string and finds the semantics of it. creates mrs notation
 		parenthesizedCommand = postMRS.parseMRSintoCommand(selectedMRS)
 		parenthesizedCommand = self.resolveLeftRightBread(parenthesizedCommand, leftOrRightBread)  # hack 2of2 for left/right bread
 
 		outString = "OK. " + inString 
 		self.soundhandle.say(outString, self.voice)
 
-		self.processCommandToYAML(parenthesizedCommand)
+		####breaks right here####
+		#self.processCommandToYAML(parenthesizedCommand)	
 
 		outString = "What is your next command?" 
 		self.soundhandle.say(outString, self.voice)
 
 		return 
 
-
+#make recipe command
 	def dialog_20(self, inString):
 
 		self.dialog_state = '21'
@@ -187,7 +198,7 @@ class Dialog:
 
 		return 
 
-
+#make recipe command part 2 writes to *_recipe.txt file
 	def dialog_21(self, inString):
 
 		self.dialog_state = '22'
@@ -206,6 +217,7 @@ class Dialog:
 		return
 
 
+#make recipe command part 3, either store it or finish recipe
 	def dialog_22(self, inString):
 
 		if inString =="store recipe":
@@ -226,7 +238,7 @@ class Dialog:
 
 		return
 
-
+#get recipe command
 	def dialog_30(self, inString):
 
 		inString = re.sub(r'get recipe for.', "", inString)
@@ -258,6 +270,7 @@ class Dialog:
 		return
 
 
+#pause command
 	def dialog_40(self, inString):
 
 		rospy.loginfo("[PASSIVE LISTENING]: " + inString)
@@ -272,18 +285,22 @@ class Dialog:
 
 		return
 
-
+#creates a preMRS by using ace to find the semantic relations of words
 	def semanticAnalysis (self, inString):
 
 		ace = analyzer_dir + "ace"
 		erg = analyzer_dir + "erg-1214-x86-64-0.9.25.dat"
 		
 		command = "echo " + inString + " | " + ace + " -g " + erg + " -n 10 -Tf"
+		#(ex. echo place the pink bar | /home/nathanielr/catkin_ws/src/dialog_robot/analyzer/ace -g /home/nathanielr/catkin_ws/src/dialog_robot/analyzer/erg-1214-x86-64-0.9.25.dat -n 10 -Tf
 		allMRS = os.popen(command).read()
-		selectedMRS = preMRS.preprocessSemantics(allMRS)
-		
-		return selectedMRS
+		#print( "allMRS: " )
+		#print( allMRS )
+		selectedMRS = preMRS.preprocessSemantics(allMRS)#selects mrs notation
+		#print( "SelectedMRS: " )
+		#print( selectedMRS )
 
+		return selectedMRS
 
 	def outputYAML(self, parenthesizedCommand):
 
@@ -295,38 +312,40 @@ class Dialog:
 		
 		return yamlData, firstNode
 
-
+#puts parenthesized command as a YAML command
 	def processCommandToYAML (self, command):
 
 		dataYAML, firstNode = self.outputYAML (command)
 
 		rospy.loginfo("Requesting action to server...")
 
-		###########TESTING#########
-		responseServer = dc.dialog_action_client(dataYAML, firstNode) ############################
+		###########TESTING#########	
+		#here is where it breaks
+		#responseServer = dc.dialog_action_client(dataYAML, firstNode) 
 		#############################		
 
 		if responseServer.strip() == "Done":
 			rospy.loginfo("DONE: Action performed by robot")			
 			ts = time.time()
-  			st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
-  			outfilename = yaml_dir + "output_" + st + ".yaml"
-  			self.outputTreeImage(command, st)
-		  	outfile = open(outfilename, 'w')
-  			outfile.write (dataYAML)
-  			outfile.close()	
+			st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
+			outfilename = yaml_dir + "output_" + st + ".yaml"
+			self.outputTreeImage(command, st)
+			outfile = open(outfilename, 'w')
+			outfile.write (dataYAML)
+			outfile.close()	
   		
-  		else:
+		else:
   			rospy.loginfo("Action could not be performed by the robot...")
 
 
+#draw tree diagram using nltk
 	def outputTreeImage(self, inString, timeStamp):
 
 		t = nltk.Tree.fromstring(inString)
 		outfilename = tree_dir + "output_" + timeStamp + ".ps"
 		nltk.draw.tree.TreeView(t)._cframe.print_to_file(outfilename)
 
-
+#creates parenthesized command using postMRS
 	def	addCommandToRecipe(self, inString):
 
 		self.recipe += inString + '\n'
@@ -344,7 +363,7 @@ class Dialog:
 		inString = "Ok. " + inString 
 		self.soundhandle.say(inString, self.voice)
 		
-		self.processCommandToYAML(parenthesizedCommand)	
+		#self.processCommandToYAML(parenthesizedCommand)	
 		
 		return
 
@@ -365,6 +384,7 @@ class Dialog:
 		self.recipe = ""	
 
 
+#checks for conjunctions
 	def isRecipeOfrecipes(self, inString):
 
 		inString_l = inString.split()
@@ -372,6 +392,8 @@ class Dialog:
 			word = word.strip()
 			if word == 'and':
 				continue
+			#elif word == 'while':
+			#	continue
 			if word not in self.recipes:
 				return False
 		return True
@@ -409,7 +431,7 @@ class Dialog:
 			fileinput.close()
 		parenthesizedCommand_ALL += " )"
 
-		self.processCommandToYAML(parenthesizedCommand_ALL)	
+		#self.processCommandToYAML(parenthesizedCommand_ALL)	
 
 		filestream = open(self.recipe_file, 'w')
 		filestream.write(self.recipe)
@@ -424,7 +446,7 @@ class Dialog:
 
 		self.recipe_file = ""
 
-
+#creates YAML command notation of recipes
 	def recipeOfCommands(self, withYAML):
 	
 		parenthesizedCommand_ALL = ""
@@ -448,15 +470,15 @@ class Dialog:
 		if numberLine >1:
 			parenthesizedCommand_ALL += " )"
 
-		if withYAML:
-			self.processCommandToYAML(parenthesizedCommand_ALL)	
+		#if withYAML:
+			#self.processCommandToYAML(parenthesizedCommand_ALL)	
 
-		else:		
-			ts = time.time()
-  			st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
-  			self.outputTreeImage(parenthesizedCommand_ALL, st);
+		#else:		
+		ts = time.time()
+		st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
+		self.outputTreeImage(parenthesizedCommand_ALL, st);
 
-	  	if self.recipe_name not in self.recipes:
+		if self.recipe_name not in self.recipes:
 			filestream = open(recipe_dir + "recipe.names", 'a')
 			outstring = re.sub(r'^.*recipe/', "", self.recipe_file)
 			filestream.write(outstring  + '\n')
@@ -514,3 +536,6 @@ if __name__=="__main__":
 
 	except rospy.ROSInterruptException:
 		rospy.loginfo("Dialog finished.")
+
+
+
