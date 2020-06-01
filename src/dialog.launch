@@ -5,7 +5,6 @@
     <param name="dict" value="/home/nathaniel/catkin_ws_wr/src/dialog_robot/pocketsphinx/recipe.dic"/>
     <param name="kws" value="/home/nathaniel/catkin_ws_wr/src/dialog_robot/pocketsphinx/recipe.kwlist"/>
     <param name="stream" value="true" />
-    <param name="kws_delay" value="50" />
   </node>
 
   <node name="dialog" pkg="dialog_robot" type="dialog.py" output="screen" required="true">
